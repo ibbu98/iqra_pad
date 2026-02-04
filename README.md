@@ -80,3 +80,8 @@ Connected SD card reader in SPI mode and tested communication.
 - Button navigation working.
 - E-Ink SPI interface configured.
 - SD card SPI under testing and debug.
+
+### 3rd Feb - 4th Feb 2026
+Wrote a Python Code to take the image and crop them to a perfect size and turned their Resoultion to 400x300 for our test e ink display and and made them to 1 bit array file and saved them into a .c file and flashed them in the chip directly and ran them still the memory card troubleshooting has not got over, Working on them insha allah it will be fixed soon
+
+## Next have to make state machine for 13 line Quran with Juzu, Surah and Bookmark Navigation
