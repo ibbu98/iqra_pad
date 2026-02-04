@@ -6,9 +6,8 @@
 #include "ui.h"
 #include "buttons.h"
 #include "sd_card.h"
-
-// Quran pages header (contains QURAN_W, QURAN_H, QURAN13_PAGES, QURAN13_PAGE_COUNT)
 #include "13_line_quran_pages.h"
+#include "13_quran_sm.h"
 
 // --- PINS ---
 #define PIN_CS   10
@@ -21,7 +20,6 @@
 
 MyDisplay display(GxEPD2_420_GDEY042T81(PIN_CS, PIN_DC, PIN_RST, PIN_BUSY));
 
-// --- STATE MANAGEMENT ---
 enum Page {
   PAGE_HOME,
   PAGE_MUSIC,
@@ -30,46 +28,24 @@ enum Page {
 
 Page currentPage = PAGE_HOME;
 
-// Selection Variables
 int homeSelection = 0;
 int musicSelection = 0;
 std::vector<String> songList;
 
-// Quran page index (0..QURAN13_PAGE_COUNT-1)
-int quran13Index = 0;
+Quran13SM q13sm;
 
-// =======================
-// Helpers to draw screens
-// =======================
-void drawHome()
+static void drawHome()
 {
   display.setFullWindow();
   display.firstPage();
-  do {
-    drawHomePage(display, homeSelection);
-  } while (display.nextPage());
+  do { drawHomePage(display, homeSelection); } while (display.nextPage());
 }
 
-void drawMusic()
+static void drawMusic()
 {
   display.setFullWindow();
   display.firstPage();
-  do {
-    drawMusicPage(display, songList, musicSelection);
-  } while (display.nextPage());
-}
-
-void drawQuran13(int idx)
-{
-  display.setFullWindow();
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-
-    // Use table from 13_line_quran_pages.cpp
-    display.drawBitmap(0, 0, QURAN13_PAGES[idx], QURAN_W, QURAN_H, GxEPD_BLACK);
-
-  } while (display.nextPage());
+  do { drawMusicPage(display, songList, musicSelection); } while (display.nextPage());
 }
 
 void setup()
@@ -80,57 +56,52 @@ void setup()
   SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_CS);
   setupButtons();
 
-  // Initialize Display
   display.init(115200, true, 2, false);
   display.setRotation(0);
 
-  // Initialize SD Card (optional)
   if (setupSD()) {
     songList = getMusicFiles();
   }
 
-  // Draw Initial Home Page
+  q13sm.init(&display);
   drawHome();
 }
 
 void loop()
 {
-  int btn = readButtons();
-  if (btn == 0) return;
+  int act = readButtons();
+  if (act == 0) return;
 
-  // ==========================================
-  // HOME PAGE LOGIC
-  // ==========================================
+  // ---------------- HOME ----------------
   if (currentPage == PAGE_HOME)
   {
     int oldSel = homeSelection;
 
-    if (btn == BTN_DOWN) homeSelection = (homeSelection + 1) % 9;
-    else if (btn == BTN_UP) homeSelection = (homeSelection - 1 < 0) ? 8 : (homeSelection - 1);
-    else if (btn == BTN_RIGHT) homeSelection = (homeSelection + 1) % 9;
+    // With your 4-button mapping:
+    // PREV/NEXT scroll home items
+    if (act == ACT_NEXT) homeSelection = (homeSelection + 1) % 9;
+    else if (act == ACT_PREV) homeSelection = (homeSelection - 1 < 0) ? 8 : (homeSelection - 1);
 
-    // ENTER QURAN 13-LINE MODE
-    // NOTE: change 0 to the correct index if "13 line Quran" is not the first item.
-    else if (btn == BTN_SELECT && homeSelection == 0)
+    // SELECT opens apps
+    else if (act == ACT_SELECT && homeSelection == 0)
     {
       currentPage = PAGE_QURAN13;
-      quran13Index = 0;
-      drawQuran13(quran13Index);
-      delay(120);
+      q13sm.enter();
+      delay(60);
       return;
     }
-
-    // ENTER MP3 PLAYER (your existing item 3)
-    else if (btn == BTN_SELECT && homeSelection == 3)
+    else if (act == ACT_SELECT && homeSelection == 3)
     {
       currentPage = PAGE_MUSIC;
       musicSelection = 0;
       drawMusic();
-      delay(120);
+      delay(60);
       return;
     }
 
-    // Update Home Screen if changed
+    // BACK can be ignored on home (or later show a popup)
+    // if (act == ACT_BACK) { }
+
     if (oldSel != homeSelection)
     {
       display.setPartialWindow(0, 0, display.width(), display.height());
@@ -139,25 +110,23 @@ void loop()
     }
   }
 
-  // ==========================================
-  // MUSIC PAGE LOGIC
-  // ==========================================
+  // ---------------- MUSIC ----------------
   else if (currentPage == PAGE_MUSIC)
   {
     int oldSel = musicSelection;
 
-    if (btn == BTN_DOWN) {
+    if (act == ACT_NEXT) {
       musicSelection++;
       if (songList.size() > 0 && musicSelection >= (int)songList.size()) musicSelection = 0;
     }
-    else if (btn == BTN_UP) {
+    else if (act == ACT_PREV) {
       musicSelection--;
       if (songList.size() > 0 && musicSelection < 0) musicSelection = (int)songList.size() - 1;
     }
-    else if (btn == BTN_LEFT) {
+    else if (act == ACT_BACK) {
       currentPage = PAGE_HOME;
       drawHome();
-      delay(120);
+      delay(60);
       return;
     }
 
@@ -169,41 +138,23 @@ void loop()
     }
   }
 
-  // ==========================================
-  // QURAN 13-LINE PAGE LOGIC (RTL)
-  // RIGHT = PREVIOUS, LEFT = NEXT
-  // Wrap around after 5th page -> back to 1st
-  // ==========================================
+  // ---------------- QURAN 13-LINE ----------------
   else if (currentPage == PAGE_QURAN13)
   {
-    // RIGHT = Previous page
-    if (btn == BTN_RIGHT)
-    {
-      quran13Index--;
-      if (quran13Index < 0) quran13Index = (int)QURAN13_PAGE_COUNT - 1;
-      drawQuran13(quran13Index);
-      delay(120);
-      return;
-    }
+    if (act == ACT_NEXT) q13sm.onNext();
+    else if (act == ACT_PREV) q13sm.onPrev();
+    else if (act == ACT_SELECT) q13sm.onSelect();
+    else if (act == ACT_BACK) q13sm.onBack();
 
-    // LEFT = Next page
-    if (btn == BTN_LEFT)
+    if (q13sm.shouldExitToHome())
     {
-      quran13Index = (quran13Index + 1) % QURAN13_PAGE_COUNT;
-      drawQuran13(quran13Index);
-      delay(120);
-      return;
-    }
-
-    // BACK to Home
-    if (btn == BTN_SELECT)
-    {
+      q13sm.clearExitToHome();
       currentPage = PAGE_HOME;
       drawHome();
-      delay(120);
+      delay(60);
       return;
     }
   }
 
-  delay(120);
+  delay(30);
 }
