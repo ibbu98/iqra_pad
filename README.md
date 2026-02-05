@@ -1,3 +1,18 @@
+### Iqra Pad - Furqan Edition 
+
+## Proble Statement:
+# The Main Purpose for this device to make is Avoid using Mobile phones for reading the Quran as we are using for several urposes why don't we have a pocket Digital uran so where You are you can Read in Comfortable Script. 
+# I aslo wanted to have the Audio version of THe Holy Quran too with different Reciter.
+# Also Adhkar is also Included for doing the morning and the evenng adhkar to show how imporatant to be in the conciosuness of the creator.
+# The Voice Memo is also included were you can record your own reciing and playback them.
+# I also have added tasbeeh counter to show the importance of the Daily salwath and kalima
+# I have added an alarm and Timer, alaarm can be used for adhan and timer is for extra faeature to boost someone atleast to ocnc on Akhirah for certain peiod of time like distarcting from teh real world to the spritual world 
+# Have Settings to toggle basic settings
+
+
+
+
+
 ### Jan 31st, 2025 
 - Checked the E ink DIsplay with a first Page of Quran 
 
@@ -84,4 +99,9 @@ Connected SD card reader in SPI mode and tested communication.
 ### 3rd Feb - 4th Feb 2026
 Wrote a Python Code to take the image and crop them to a perfect size and turned their Resoultion to 400x300 for our test e ink display and and made them to 1 bit array file and saved them into a .c file and flashed them in the chip directly and ran them still the memory card troubleshooting has not got over, Working on them insha allah it will be fixed soon
 
-## Next have to make state machine for 13 line Quran with Juzu, Surah and Bookmark Navigation
+## Made the state machine for 13 line Quran with Juzu, Surah, Bookmark and Last Read Navigation.
+## 13 Line Quran is being Tested today with 5 pages and teh refreshing the full screen is being avoided and keeping the display neat and clean and minimal 
+# Uploaded a video of till now working condition of the protype saved as "Protype 1"
+
+
+### Have to interface the sd card - High Priority Now
