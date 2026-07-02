@@ -78,6 +78,7 @@ void otaDownload(OtaInfo& info, void (*progressCb)(int pct))
   HTTPClient http;
   http.begin(client, info.dlUrl);
   http.setTimeout(60000);
+  http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // GitHub → CDN redirect
 
   int code = http.GET();
   if (code != 200) {
