@@ -94,7 +94,24 @@ void drawHomePage(MyDisplay &display, int selectedItem, bool wifiOn) {
   drawTile(display, 0, 170, 130, 130, "15 Line\n  Quran", btnFont, (selectedItem == 1));
 
   drawTile(display, 130, 40, 130, 86, "Adhkar", btnFont, (selectedItem == 2));
-  drawTile(display, 130, 126, 130, 87, "Quran MP3\n& Bayaan", &FreeSansBold9pt7b, (selectedItem == 3));
+  // "Quran MP3 & Bayaan" — two lines drawn manually so they stay inside the tile
+  {
+    int tx = 130, ty = 126, tw = 130, th = 87;
+    display.drawRect(tx, ty, tw, th, GxEPD_BLACK);
+    if (selectedItem == 3) {
+      display.drawRect(tx+1, ty+1, tw-2, th-2, GxEPD_BLACK);
+      display.drawRect(tx+2, ty+2, tw-4, th-4, GxEPD_BLACK);
+      display.drawRect(tx+3, ty+3, tw-6, th-6, GxEPD_BLACK);
+    }
+    display.setFont(&FreeSansBold9pt7b);
+    int16_t x1, y1; uint16_t w1, h1;
+    display.getTextBounds("Quran MP3", 0, 0, &x1, &y1, &w1, &h1);
+    display.setCursor(tx + (tw - (int)w1)/2 - x1, ty + th/2 - 2);
+    display.print("Quran MP3");
+    display.getTextBounds("& Bayaan", 0, 0, &x1, &y1, &w1, &h1);
+    display.setCursor(tx + (tw - (int)w1)/2 - x1, ty + th/2 + 16);
+    display.print("& Bayaan");
+  }
   drawTile(display, 130, 213, 130, 87, "     Voice\n            Memo", btnFont, (selectedItem == 4));
   
   drawTile(display, 260, 40, 115, 86, "Alarm", btnFont, (selectedItem == 5));
