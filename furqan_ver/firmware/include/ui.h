@@ -43,6 +43,7 @@ void drawQuranViewPage(MyDisplay &display, int quranType, int pageNum, bool isBo
 void drawSplashPage(MyDisplay &display, const char* fwVersion = "");
 void drawBtInfoPage(MyDisplay &display);
 void drawAboutDevicePage(MyDisplay &display, const String& wifiIp, const char* sdSize);
+void drawSdBusyPage(MyDisplay &display);
 
 // ── Settings pages ────────────────────────────────────────────────────────────
 void drawSettingsPage(MyDisplay &display, int selItem);

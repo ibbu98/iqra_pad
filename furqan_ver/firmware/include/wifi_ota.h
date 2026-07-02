@@ -13,3 +13,6 @@ String wifiSSID();
 
 // Clear saved credentials and reboot — device re-opens setup hotspot.
 void wifiReset();
+
+// True while an SD file upload is in progress via the web dashboard.
+bool wifiSdBusy();

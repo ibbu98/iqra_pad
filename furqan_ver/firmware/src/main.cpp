@@ -52,7 +52,8 @@ enum Page {
   PAGE_WIFI_SETTINGS,                        // wifi status / reset
   PAGE_BT_INFO,                              // bluetooth info
   PAGE_ABOUT_DEVICE,                         // about device info
-  PAGE_OTA_UPDATE                            // software update
+  PAGE_OTA_UPDATE,                           // software update
+  PAGE_SD_BUSY                               // shown while WiFi SD upload is running
 };
 Page currentPage = PAGE_HOME;
 
@@ -185,6 +186,13 @@ static void drawBtInfo()
   display.setFullWindow();
   display.firstPage();
   do { drawBtInfoPage(display); } while (display.nextPage());
+}
+
+static void drawSdBusy()
+{
+  display.setFullWindow();
+  display.firstPage();
+  do { drawSdBusyPage(display); } while (display.nextPage());
 }
 
 static void drawWifiSettings()
@@ -374,6 +382,13 @@ void loop()
   // ── OTA web server ────────────────────────────────────────────────────────
   wifiOtaHandle();
 
+  // ── Auto-return from SD busy screen when upload finishes ─────────────────
+  if (currentPage == PAGE_SD_BUSY && !wifiSdBusy()) {
+    currentPage = PAGE_HOME;
+    drawHome(true);
+    return;
+  }
+
   // ── Auto-refresh home WiFi symbol when connection state changes ───────────
   {
     static bool _prevWifi = false;
@@ -466,6 +481,7 @@ void loop()
     else if (act == ACT_PREV) homeSelection = (homeSelection - 1 < 0) ? 8 : homeSelection - 1;
     else if (act == ACT_SELECT) {
       if (homeSelection == 0 || homeSelection == 1) {  // 13-line / 15-line Quran
+        if (wifiSdBusy()) { currentPage = PAGE_SD_BUSY; drawSdBusy(); return; }
         quranType    = homeSelection;
         quranMenuSel = 0;
         currentPage  = PAGE_QURAN_MENU;
@@ -473,6 +489,8 @@ void loop()
         return;
       }
       if (homeSelection == 3) {             // Quran MP3
+        if (wifiSdBusy()) { currentPage = PAGE_SD_BUSY; drawSdBusy(); return; }
+        reciterList = getReciterFolders();  // reload so new folders appear without reboot
         reciterSel = 0;
         currentPage = PAGE_RECITER;
         drawReciters(true);
@@ -531,6 +549,7 @@ void loop()
     else if (act == ACT_PREV) surahSel = max(surahSel - 1, 0);
     else if (act == ACT_SELECT) {
       if (surahList.empty()) return;
+      if (wifiSdBusy()) { currentPage = PAGE_SD_BUSY; drawSdBusy(); return; }
       startPlaying();   // enter NOW PLAYING
       return;
     }
@@ -825,6 +844,18 @@ void loop()
     else if (act == ACT_BACK) {
       currentPage = PAGE_SETTINGS;
       drawSettings(true);
+      return;
+    }
+  }
+
+  // ================================================================
+  // SD BUSY
+  // ================================================================
+  else if (currentPage == PAGE_SD_BUSY)
+  {
+    if (act == ACT_BACK) {
+      currentPage = PAGE_HOME;
+      drawHome(true);
       return;
     }
   }

@@ -688,6 +688,49 @@ void drawAboutDevicePage(MyDisplay &display, const String& wifiIp, const char* s
   display.print("BACK = return");
 }
 
+// ── SD busy page (shown while WiFi file upload is running) ───────────────────
+void drawSdBusyPage(MyDisplay &display)
+{
+  display.fillScreen(GxEPD_WHITE);
+  display.setTextColor(GxEPD_BLACK);
+
+  // Header bar
+  display.fillRect(0, 0, 400, 28, GxEPD_BLACK);
+  display.setTextColor(GxEPD_WHITE);
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(8, 21);
+  display.print("WiFi Upload");
+  display.setTextColor(GxEPD_BLACK);
+
+  display.drawLine(0, 28, 400, 28, GxEPD_BLACK);
+
+  int y = 70;
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(12, y);
+  display.print("Uploading to SD card...");
+
+  y += 36;
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(12, y);
+  display.print("SD card is busy. Please do not");
+  y += 22;
+  display.setCursor(12, y);
+  display.print("access files while upload runs.");
+
+  y += 40;
+  display.drawLine(12, y, 388, y, GxEPD_BLACK);
+  y += 16;
+  display.setCursor(12, y);
+  display.print("Device will return automatically");
+  y += 22;
+  display.setCursor(12, y);
+  display.print("when the upload is complete.");
+
+  display.drawLine(0, 280, 400, 280, GxEPD_BLACK);
+  display.setCursor(8, 293);
+  display.print("BACK = return to home");
+}
+
 // ── Shared settings header ────────────────────────────────────────────────────
 static void _drawSettingsHeader(MyDisplay &d, const char* title)
 {

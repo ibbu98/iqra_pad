@@ -376,15 +376,17 @@ static void handleDeleteFile() {
   else                          _server.send(500, "text/plain", "Delete failed");
 }
 
-static File32   _sdUploadFile;
-static String   _sdUploadFolder;
+static File32              _sdUploadFile;
+static String              _sdUploadFolder;
+static volatile bool       _sdBusy = false;
 
 static void handleSdUploadChunk() {
   HTTPUpload& up = _server.upload();
   if (up.status == UPLOAD_FILE_START) {
     _sdUploadFolder = _server.arg("f");
+    _sdBusy = true;   // lock SD for device UI
     String path = "/" + _sdUploadFolder + "/" + up.filename;
-    sd.remove(path.c_str());   // overwrite if exists
+    sd.remove(path.c_str());
     _sdUploadFile.open(path.c_str(), O_WRITE | O_CREAT | O_TRUNC);
     Serial.printf("[SD-up] %s\n", path.c_str());
   } else if (up.status == UPLOAD_FILE_WRITE) {
@@ -395,16 +397,16 @@ static void handleSdUploadChunk() {
       _sdUploadFile.close();
       Serial.printf("[SD-up] Done %u bytes\n", up.totalSize);
     }
+    _sdBusy = false;  // unlock SD
   }
 }
 
 static void handleSdUploadDone() {
-  bool ok = _sdUploadFile.isOpen() ? false : true;  // closed = success
-  if (_sdUploadFolder.isEmpty()) {
+  _sdBusy = false;   // ensure unlocked even if END was missed
+  if (_sdUploadFolder.isEmpty())
     _server.send(400, "text/plain", "No folder specified");
-  } else {
+  else
     _server.send(200, "text/plain", "OK");
-  }
 }
 
 // ── Firmware OTA upload ───────────────────────────────────────────────────────
@@ -507,6 +509,7 @@ void wifiOtaHandle()
 }
 
 bool   wifiIsConnected() { return _connected; }
+bool   wifiSdBusy()      { return _sdBusy; }
 String wifiIP()          { return _ip; }
 String wifiSSID()        { return _connected ? WiFi.SSID() : ""; }
 

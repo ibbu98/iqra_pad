@@ -1,7 +1,7 @@
 #pragma once
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-#define FW_VERSION    "1.0.8"
+#define FW_VERSION    "1.0.9"
 
 // ── Device identity ───────────────────────────────────────────────────────────
 #define DEVICE_NAME   "IQRA PAD"
