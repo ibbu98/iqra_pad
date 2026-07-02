@@ -548,7 +548,7 @@ void drawQuranViewPage(MyDisplay &display, int quranType, int pageNum, bool isBo
 }
 
 // ── Power splash (boot / shutdown) ────────────────────────────────────────────
-void drawSplashPage(MyDisplay &display)
+void drawSplashPage(MyDisplay &display, const char* fwVersion)
 {
   display.fillScreen(GxEPD_WHITE);
   display.setTextColor(GxEPD_BLACK);
@@ -568,13 +568,58 @@ void drawSplashPage(MyDisplay &display)
   // Divider line under title
   display.drawLine(80, 150, 320, 150, GxEPD_BLACK);
 
-  // "FURQAN VER 1.0" — smaller, centred
+  // "FURQAN VER x.x.x" — version from settings.h, centred
   display.setFont(&FreeSansBold9pt7b);
-  const char* line2 = "FURQAN VER 1.0";
+  char line2[32];
+  if (fwVersion && fwVersion[0] != '\0')
+    snprintf(line2, sizeof(line2), "FURQAN VER %s", fwVersion);
+  else
+    strncpy(line2, "FURQAN VER 1.0", sizeof(line2));
   int16_t x2, y2; uint16_t w2, h2;
   display.getTextBounds(line2, 0, 0, &x2, &y2, &w2, &h2);
   display.setCursor((400 - w2) / 2 - x2, 172);
   display.print(line2);
+}
+
+// ── Bluetooth info page (hardware not installed — future feature) ─────────────
+void drawBtInfoPage(MyDisplay &display)
+{
+  display.fillScreen(GxEPD_WHITE);
+  display.setTextColor(GxEPD_BLACK);
+
+  // Header
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(8, PG_HEADER_Y);
+  display.print("Bluetooth");
+  display.drawLine(0, PG_LINE_Y, 400, PG_LINE_Y, GxEPD_BLACK);
+
+  display.setFont(&FreeSansBold9pt7b);
+  int y = PG_LIST_TOP + 14;
+
+  display.setCursor(12, y);  display.print("Status:");
+  display.setCursor(110, y); display.print("Not installed");
+
+  y += PG_ITEM_H;
+  display.setCursor(12, y);  display.print("Module:");
+  display.setCursor(110, y); display.print("KCX_BT_EMITTER");
+
+  y += PG_ITEM_H + 4;
+  display.drawLine(12, y, 388, y, GxEPD_BLACK);
+  y += 14;
+  display.setCursor(12, y);
+  display.print("Add a KCX_BT_EMITTER module to");
+  y += PG_ITEM_H - 4;
+  display.setCursor(12, y);
+  display.print("connect Bluetooth earphones.");
+  y += PG_ITEM_H - 4;
+  display.setCursor(12, y);
+  display.print("Audio will stream automatically");
+  y += PG_ITEM_H - 4;
+  display.setCursor(12, y);
+  display.print("once the module is wired up.");
+
+  display.setCursor(8, 290);
+  display.print("BACK = return");
 }
 
 // ── Shared settings header ────────────────────────────────────────────────────
@@ -593,8 +638,8 @@ void drawSettingsPage(MyDisplay &display, int selItem)
 {
   _drawSettingsHeader(display, "Settings");
 
-  const char* items[] = { "WiFi", "Software Update" };
-  for (int i = 0; i < 2; i++) {
+  const char* items[] = { "WiFi", "Bluetooth", "Software Update" };
+  for (int i = 0; i < 3; i++) {
     int y = PG_LIST_TOP + i * PG_ITEM_H;
     if (i == selItem) {
       display.fillRect(0, y, 400, PG_ITEM_H, GxEPD_BLACK);

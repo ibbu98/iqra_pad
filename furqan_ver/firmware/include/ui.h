@@ -40,7 +40,8 @@ void drawJuzIndexPage(MyDisplay &display, int quranType, int selIdx, int topIdx)
 void drawBookmarksPage(MyDisplay &display, const std::vector<int> &bookmarks, int selIdx, int topIdx);
 void drawQuranViewPage(MyDisplay &display, int quranType, int pageNum, bool isBookmarked);
 
-void drawSplashPage(MyDisplay &display);
+void drawSplashPage(MyDisplay &display, const char* fwVersion = "");
+void drawBtInfoPage(MyDisplay &display);
 
 // ── Settings pages ────────────────────────────────────────────────────────────
 void drawSettingsPage(MyDisplay &display, int selItem);

@@ -50,6 +50,7 @@ enum Page {
   PAGE_BOOKMARKS, PAGE_QURAN_VIEW,           // bookmarks & viewer
   PAGE_SETTINGS,                             // settings menu
   PAGE_WIFI_SETTINGS,                        // wifi status / reset
+  PAGE_BT_INFO,                              // bluetooth info
   PAGE_OTA_UPDATE                            // software update
 };
 Page currentPage = PAGE_HOME;
@@ -159,6 +160,13 @@ static void drawSettings(bool full = true)
   do { drawSettingsPage(display, settingsSel); } while (display.nextPage());
 }
 
+static void drawBtInfo()
+{
+  display.setFullWindow();
+  display.firstPage();
+  do { drawBtInfoPage(display); } while (display.nextPage());
+}
+
 static void drawWifiSettings()
 {
   display.setFullWindow();
@@ -247,7 +255,7 @@ static void enterSleep()
   // Show power-off splash, hold 3 s
   display.setFullWindow();
   display.firstPage();
-  do { drawSplashPage(display); } while (display.nextPage());
+  do { drawSplashPage(display, FW_VERSION); } while (display.nextPage());
   delay(3000);
 
   // Wait for both buttons to be physically released before sleeping,
@@ -282,7 +290,7 @@ static void enterSleep()
   // Show power-on splash for 3 s
   display.setFullWindow();
   display.firstPage();
-  do { drawSplashPage(display); } while (display.nextPage());
+  do { drawSplashPage(display, FW_VERSION); } while (display.nextPage());
   delay(3000);
 
   // Disarm power detection — loop() re-arms it once buttons are released,
@@ -325,7 +333,7 @@ void setup()
   // Boot splash — 2 s then go straight to home
   display.setFullWindow();
   display.firstPage();
-  do { drawSplashPage(display); } while (display.nextPage());
+  do { drawSplashPage(display, FW_VERSION); } while (display.nextPage());
   delay(2000);
 
   // Home screen appears immediately — user is not trapped on the splash
@@ -724,14 +732,17 @@ void loop()
   else if (currentPage == PAGE_SETTINGS)
   {
     int old = settingsSel;
-    if      (act == ACT_NEXT) settingsSel = min(settingsSel + 1, 1);
+    if      (act == ACT_NEXT) settingsSel = min(settingsSel + 1, 2);
     else if (act == ACT_PREV) settingsSel = max(settingsSel - 1, 0);
     else if (act == ACT_SELECT) {
       if (settingsSel == 0) {           // WiFi
         currentPage = PAGE_WIFI_SETTINGS;
         drawWifiSettings();
+      } else if (settingsSel == 1) {    // Bluetooth
+        currentPage = PAGE_BT_INFO;
+        drawBtInfo();
       } else {                          // Software Update
-        otaInfo = OtaInfo();            // reset state
+        otaInfo = OtaInfo();
         currentPage = PAGE_OTA_UPDATE;
         drawOta();
       }
@@ -743,6 +754,18 @@ void loop()
       return;
     }
     if (old != settingsSel) drawSettings(false);
+  }
+
+  // ================================================================
+  // BLUETOOTH INFO
+  // ================================================================
+  else if (currentPage == PAGE_BT_INFO)
+  {
+    if (act == ACT_BACK) {
+      currentPage = PAGE_SETTINGS;
+      drawSettings(true);
+      return;
+    }
   }
 
   // ================================================================

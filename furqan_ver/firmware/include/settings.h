@@ -2,7 +2,7 @@
 
 // ── Firmware version ──────────────────────────────────────────────────────────
 // Bump this string before every release you push to GitHub.
-#define FW_VERSION  "1.0.1"
+#define FW_VERSION  "1.0.2"
 
 // ── OTA update server (GitHub raw) ───────────────────────────────────────────
 // 1. Create a GitHub repo (or use your existing one).
