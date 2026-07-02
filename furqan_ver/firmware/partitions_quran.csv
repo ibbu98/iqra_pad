@@ -1,0 +1,17 @@
+# Custom partitions for ESP32-S3 N16R8 (16 MB flash)
+# Drops OTA (no wireless update) to give the app partition 12 MB for Quran PROGMEM data.
+#
+# Flash map:
+#   0x000000 – 0x008FFF   : bootloader
+#   0x009000 – 0x00DFFF   : NVS (20 KB — bookmarks, last-read, settings)
+#   0x00E000 – 0x00FFFF   : phy init
+#   0x010000 – 0xC0FFFF   : app  (12 MB — firmware + all PROGMEM Quran pages)
+#   0xC10000 – 0xFFFFFF   : LittleFS (4 MB — user data, future use)
+#
+# Budget: 604 pages × 15,000 bytes = 9.06 MB rodata + ~0.5 MB firmware = 9.56 MB → fits in 12 MB.
+
+# Name,    Type,  SubType,  Offset,    Size
+nvs,       data,  nvs,      0x9000,    0x5000,
+phy_init,  data,  phy,      0xe000,    0x1000,
+app0,      app,   ota_0,    0x10000,   0xC00000,
+littlefs,  data,  littlefs, 0xC10000,  0x3F0000,

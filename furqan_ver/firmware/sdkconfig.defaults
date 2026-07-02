@@ -1,0 +1,4 @@
+# Free GPIO 39-42 (JTAG pins) for use as regular GPIO.
+# On ESP32-S3, these pins default to JTAG (MTCK/MTDO/MTDI/MTMS).
+# Disabling OCD-awareness releases them to the application.
+CONFIG_ESP_DEBUG_OCDAWARE=n

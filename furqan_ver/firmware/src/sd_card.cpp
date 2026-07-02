@@ -1,92 +1,86 @@
 #include "sd_card.h"
+#include <algorithm>
 
-#define SCREEN_CS_PIN 10 
+SPIClass spiSD(HSPI);
+SdFat32  sd;
 
-// --- DEBUG HELPER ---
-void printDirectory(File dir, int numTabs) {
-    while (true) {
-        File entry = dir.openNextFile();
-        if (!entry) {
-            // no more files
-            break;
-        }
-        
-        // Print indentation for folders
-        for (uint8_t i = 0; i < numTabs; i++) {
-            Serial.print("  ");
-        }
-        
-        Serial.print(entry.name());
-        
-        if (entry.isDirectory()) {
-            Serial.println("/");
-            printDirectory(entry, numTabs + 1); // Go inside!
-        } else {
-            // Check file size
-            Serial.print("\t\t");
-            Serial.println(entry.size(), DEC);
-        }
-        entry.close();
-    }
+bool setupSD()
+{
+  spiSD.begin(SD_SCK_PIN, SD_MISO_PIN, SD_MOSI_PIN, -1);
+  pinMode(SD_CS_PIN, OUTPUT);
+  digitalWrite(SD_CS_PIN, HIGH);
+  delay(100);
+
+  SdSpiConfig cfg(SD_CS_PIN, DEDICATED_SPI, 25000000UL, &spiSD);
+  Serial.print("[SD] Mounting ... ");
+  if (!sd.begin(cfg)) {
+    Serial.println("FAILED — CS=18 SCK=14 MOSI=21 MISO=47 VCC=5V");
+    return false;
+  }
+  Serial.println("OK");
+  uint32_t szMB = (uint32_t)(sd.card()->sectorCount() / 2048UL);
+  Serial.printf("[SD] %lu MB\n", szMB);
+  return true;
 }
 
-// --- SETUP ---
-bool setupSD() {
-    // 1. Silence Display
-    pinMode(SCREEN_CS_PIN, OUTPUT);
-    digitalWrite(SCREEN_CS_PIN, HIGH);
-    delay(10);
+bool testSD()
+{
+  const char* path = "iqra_test.txt";
+  File32 f;
+  if (!f.open(path, O_WRITE | O_CREAT | O_TRUNC)) return false;
+  f.println("iqra_pad OK");
+  f.close();
 
-    Serial.print("Mounting SD Card... ");
-    // Try standard speed first
-    if (!SD.begin(SD_CS_PIN)) {
-        Serial.println("FAILED!");
-        Serial.println(" -> Check Wiring: MISO(13), MOSI(11), SCK(12), CS(18)");
-        Serial.println(" -> Check Format: Must be FAT32 (not exFAT)");
-        return false;
-    }
-    
-    Serial.println("SUCCESS!");
-    Serial.println("--- STARTING FILE SCAN ---");
-    
-    File root = SD.open("/");
-    printDirectory(root, 0); // Print EVERYTHING to Serial
-    
-    Serial.println("--- SCAN COMPLETE ---");
-    return true;
+  if (!f.open(path, O_READ)) return false;
+  char buf[32] = {};
+  f.read(buf, sizeof(buf) - 1);
+  f.close();
+  sd.remove(path);
+
+  bool ok = (strncmp(buf, "iqra_pad OK", 11) == 0);
+  Serial.printf("[SD] read test %s\n", ok ? "PASS" : "FAIL");
+  return ok;
 }
 
-// --- FIND MP3s (Recursive) ---
-void findMp3s(File dir, std::vector<String> &files) {
-    // Rewind directory to start
-    dir.rewindDirectory();
-    
-    while (true) {
-        File entry = dir.openNextFile();
-        if (!entry) break;
-
-        String fileName = entry.name();
-
-        if (entry.isDirectory()) {
-            // RECURSION: Go deeper into the folder
-            findMp3s(entry, files);
-        } else {
-            // CHECK EXTENSION
-            if (fileName.endsWith(".mp3") || fileName.endsWith(".MP3")) {
-                Serial.print("ADDED TO LIST: ");
-                Serial.println(fileName);
-                files.push_back(fileName);
-            }
-        }
-        entry.close();
-    }
+std::vector<String> getReciterFolders()
+{
+  std::vector<String> v;
+  File32 root;
+  if (!root.open("/")) return v;
+  root.rewindDirectory();
+  File32 entry;
+  while (entry.openNext(&root, O_RDONLY)) {
+    char name[64];
+    entry.getName(name, sizeof(name));
+    String n = String(name);
+    if (entry.isDirectory() && name[0] != '.' &&
+        n != "System Volume Information" &&
+        n != "13line" && n != "15line")
+      v.push_back(n);
+    entry.close();
+  }
+  root.close();
+  std::sort(v.begin(), v.end());
+  return v;
 }
 
-std::vector<String> getMusicFiles() {
-    std::vector<String> files;
-    File root = SD.open("/");
-    if (root) {
-        findMp3s(root, files);
+std::vector<String> getSurahFiles(const String& folder)
+{
+  std::vector<String> v;
+  File32 dir;
+  if (!dir.open(("/" + folder).c_str())) return v;
+  File32 entry;
+  while (entry.openNext(&dir, O_RDONLY)) {
+    if (!entry.isDirectory()) {
+      char name[128];
+      entry.getName(name, sizeof(name));
+      String n = String(name);
+      if (n.endsWith(".mp3") || n.endsWith(".MP3"))
+        v.push_back(n.substring(0, n.lastIndexOf('.')));
     }
-    return files;
+    entry.close();
+  }
+  dir.close();
+  std::sort(v.begin(), v.end());
+  return v;
 }
