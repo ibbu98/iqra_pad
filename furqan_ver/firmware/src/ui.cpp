@@ -778,8 +778,9 @@ void drawWifiSettingsPage(MyDisplay &display, bool connected,
     display.print("or: iqra-pad.local/update");
 
     // Footer
-    display.setCursor(LX, 290);
-    display.print("SELECT=forget WiFi   BACK=return");
+    display.drawLine(0, 280, 400, 280, GxEPD_BLACK);
+    display.setCursor(LX, 293);
+    display.print("SELECT = forget WiFi     BACK = return");
 
   } else {
     // ── Not connected — hotspot instructions ──────────────────────────────────
@@ -809,28 +810,36 @@ void drawWifiSettingsPage(MyDisplay &display, bool connected,
     display.print("   No popup? Open: 192.168.4.1");
 
     // Footer
-    display.setCursor(LX, 290);
+    display.drawLine(0, 280, 400, 280, GxEPD_BLACK);
+    display.setCursor(LX, 293);
     display.print("BACK = return");
   }
 }
 
 // ── OTA update page ───────────────────────────────────────────────────────────
-// otaState values: 0=idle 1=checking 2=up-to-date 3=available
-//                  4=downloading 5=installing 6=done 7=error
 void drawOtaPage(MyDisplay &display, const char* currentVer,
                  const char* latestVer, int otaState, int progress,
                  const char* errMsg)
 {
   _drawSettingsHeader(display, "Software Update");
-  display.setFont(&FreeSansBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
 
-  int y = PG_LIST_TOP + 8;
+  // ── Installed version row (always shown) ──────────────────────────────────
+  int y = PG_LIST_TOP + 14;   // y = 46
+  display.setFont(&FreeSansBold9pt7b);
   display.setCursor(12, y);
-  display.print("Installed:  v");
-  display.print(currentVer);
+  display.print("Installed:");
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(108, y + 2);
+  display.print("v"); display.print(currentVer);
 
-  y += PG_ITEM_H;
+  // Separator — state content starts BELOW y = 68 so partial refresh covers it
+  y += 24;
+  display.drawLine(0, y, 400, y, GxEPD_BLACK);
+  y += 18;   // y ≈ 88, well inside the partial-refresh window
+
+  // ── State-dependent content ───────────────────────────────────────────────
+  display.setFont(&FreeSansBold9pt7b);
 
   switch (otaState) {
     case 0: // OTA_IDLE
@@ -845,54 +854,58 @@ void drawOtaPage(MyDisplay &display, const char* currentVer,
 
     case 2: // OTA_UP_TO_DATE
       display.setCursor(12, y);
-      display.print("You are up to date!");
-      y += PG_ITEM_H;
+      display.print("Already up to date!");
+      y += 28;
+      display.setFont(&FreeSansBold12pt7b);
       display.setCursor(12, y);
-      display.print("v");
-      display.print(currentVer);
-      display.print(" is the latest version.");
+      display.print("v"); display.print(currentVer);
+      display.setFont(&FreeSansBold9pt7b);
+      y += 28;
+      display.setCursor(12, y);
+      display.print("is the latest version.");
       break;
 
     case 3: // OTA_AVAILABLE
       display.setCursor(12, y);
       display.print("New version available:");
-      y += PG_ITEM_H;
-      display.setFont(&FreeSansBold12pt7b);
+      y += 28;
+      display.setFont(&FreeSansBold18pt7b);
       display.setCursor(12, y);
-      display.print("v");
-      display.print(latestVer);
+      display.print("v"); display.print(latestVer);
       display.setFont(&FreeSansBold9pt7b);
-      y += PG_ITEM_H + 4;
+      y += 36;
       display.setCursor(12, y);
       display.print("SELECT = install now");
-      y += PG_ITEM_H - 4;
+      y += 24;
       display.setCursor(12, y);
-      display.print("BACK = later");
+      display.print("BACK = cancel");
       break;
 
     case 4: { // OTA_DOWNLOADING
       display.setCursor(12, y);
-      display.print("Downloading v");
-      display.print(latestVer);
-      display.print("...");
+      display.print("Downloading  v"); display.print(latestVer);
 
-      // Progress bar
-      int barY = y + 22;
-      int barW = 370;
-      display.drawRect(12, barY, barW, 18, GxEPD_BLACK);
+      // Progress bar — tall and clear on e-ink
+      y += 24;
+      int barW = 376;
+      display.drawRect(12, y, barW, 26, GxEPD_BLACK);
       int fill = (progress * (barW - 2)) / 100;
-      if (fill > 0) display.fillRect(13, barY + 1, fill, 16, GxEPD_BLACK);
+      if (fill > 0) display.fillRect(13, y + 1, fill, 24, GxEPD_BLACK);
 
-      y = barY + 28;
+      y += 38;
+      display.setFont(&FreeSansBold12pt7b);
       display.setCursor(12, y);
-      display.printf("%d%%  Please wait...", progress);
+      display.printf("%d%%", progress);
+      display.setFont(&FreeSansBold9pt7b);
+      display.setCursor(72, y - 2);
+      display.print("  Please wait...");
       break;
     }
 
     case 6: // OTA_DONE
       display.setCursor(12, y);
       display.print("Update complete!");
-      y += PG_ITEM_H;
+      y += 28;
       display.setCursor(12, y);
       display.print("Device is rebooting...");
       break;
@@ -900,14 +913,17 @@ void drawOtaPage(MyDisplay &display, const char* currentVer,
     case 7: // OTA_ERROR
       display.setCursor(12, y);
       display.print("Update failed:");
-      y += PG_ITEM_H - 4;
+      y += 24;
       display.setCursor(12, y);
-      display.print(errMsg);
+      display.print(errMsg ? errMsg : "Unknown error");
       break;
   }
 
+  // Footer — visually separated, smaller feel
   if (otaState != 4 && otaState != 6) {
-    display.setCursor(8, 290);
+    display.drawLine(0, 282, 400, 282, GxEPD_BLACK);
+    display.setFont(&FreeSansBold9pt7b);
+    display.setCursor(8, 295);
     display.print("BACK = return");
   }
 }

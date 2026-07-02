@@ -207,9 +207,9 @@ static void drawOta()
   } while (display.nextPage());
 }
 
-static void drawOtaProgress()  // partial refresh — progress bar region only
+static void drawOtaProgress()  // partial refresh — covers all state-content area
 {
-  display.setPartialWindow(0, 80, 400, 220);
+  display.setPartialWindow(0, 40, 400, 260);
   display.firstPage();
   do {
     drawOtaPage(display, FW_VERSION,
