@@ -8,11 +8,15 @@
 // ── Tiny JSON field extractor (avoids ArduinoJson dependency) ────────────────
 static String jsonField(const String& json, const char* key)
 {
-  // Finds "key":"value" and returns value.
-  String search = String("\"") + key + "\":\"";
+  // Handles both "key":"value" and "key": "value" (space after colon is fine)
+  String search = String("\"") + key + "\":";
   int start = json.indexOf(search);
   if (start < 0) return "";
   start += search.length();
+  // Skip any whitespace between : and "
+  while (start < (int)json.length() && (json[start] == ' ' || json[start] == '\t')) start++;
+  if (start >= (int)json.length() || json[start] != '"') return "";
+  start++;  // skip opening quote
   int end = json.indexOf('"', start);
   if (end < 0) return "";
   return json.substring(start, end);
