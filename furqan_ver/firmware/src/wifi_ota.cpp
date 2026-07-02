@@ -5,11 +5,14 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <ESPmDNS.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 static WiFiManager _wm;
 static WebServer   _server(80);
 static bool        _connected   = false;
 static bool        _serverUp    = false;
+static volatile bool _initDone  = false;   // set true once background task finishes
 static String      _ip;
 static String      _deviceName;
 
@@ -152,40 +155,51 @@ static void startWebServer()
   Serial.printf("[WiFi] Web server up — IP: %s\n", _ip.c_str());
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
-void wifiOtaInit(const char* deviceName)
+// ── Background WiFi task — runs on Core 1 alongside loop() ───────────────────
+static void wifiTask(void*)
 {
-  _deviceName = deviceName;
-
-  // Non-blocking mode: returns immediately whether WiFi connects or not.
-  // The captive-portal hotspot (IQRA-PAD-SETUP) is served via wifiOtaHandle().
   _wm.setConfigPortalBlocking(false);
-  _wm.setConnectTimeout(5);           // 5 s max to try saved network, then fall to portal
-  _wm.setConnectRetries(1);           // only 1 attempt — fail fast if not in range
-  _wm.setConfigPortalTimeout(0);      // portal stays open indefinitely (no auto-close)
+  _wm.setConnectTimeout(20);    // 20 s — enough for iPhone hotspot to wake up
+  _wm.setConnectRetries(3);     // retry 3 times before giving up
+  _wm.setConfigPortalTimeout(0); // portal stays open indefinitely
 
   _wm.setAPCallback([](WiFiManager*) {
     Serial.println("[WiFi] No saved network — hotspot 'IQRA-PAD-SETUP' is open.");
-    Serial.println("[WiFi] Connect your phone to it to set up WiFi.");
   });
 
   if (_wm.autoConnect("IQRA-PAD-SETUP")) {
-    // Saved WiFi found and connected immediately
     _connected = true;
     _ip = WiFi.localIP().toString();
     Serial.printf("[WiFi] Connected — IP: %s\n", _ip.c_str());
     startWebServer();
   } else {
-    Serial.println("[WiFi] Captive portal running in background...");
+    Serial.println("[WiFi] Portal running — waiting for credentials...");
   }
+
+  _initDone = true;
+  vTaskDelete(nullptr);  // task done; wifiOtaHandle() takes over via wm.process()
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+void wifiOtaInit(const char* deviceName)
+{
+  _deviceName = deviceName;
+  // Kick off WiFi on a background task — returns immediately, never blocks UI
+  xTaskCreatePinnedToCore(wifiTask, "wifi_init", 8192,
+                          nullptr, 1, nullptr, 1 /*Core 1*/);
 }
 
 void wifiOtaHandle()
 {
-  if (!_connected) {
-    _wm.process();   // drives the captive-portal web server
+  if (!_initDone) {
+    // Background task still running (connecting) — nothing to process yet
+    return;
+  }
 
-    // Check if the portal flow just finished connecting
+  if (!_connected) {
+    _wm.process();  // drives the captive-portal web server
+
+    // Detect late connection (portal was open, user entered credentials)
     if (WiFi.status() == WL_CONNECTED) {
       _connected = true;
       _ip = WiFi.localIP().toString();

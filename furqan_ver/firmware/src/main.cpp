@@ -354,6 +354,16 @@ void loop()
   // ── OTA web server ────────────────────────────────────────────────────────
   wifiOtaHandle();
 
+  // ── Auto-refresh home WiFi symbol when connection state changes ───────────
+  {
+    static bool _prevWifi = false;
+    bool _nowWifi = wifiIsConnected();
+    if (_nowWifi != _prevWifi) {
+      _prevWifi = _nowWifi;
+      if (currentPage == PAGE_HOME) drawHome(false);
+    }
+  }
+
   // ── Power button: SELECT + BACK held together for 3 s → sleep ────────────
   {
     static uint32_t _pwrHoldStart = 0;
