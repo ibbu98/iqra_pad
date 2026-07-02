@@ -163,9 +163,30 @@ static void drawSettings(bool full = true)
 
 static void drawAboutDevice()
 {
+  // SD card total + free space
+  char sdBuf[32] = "No card";
+  if (sd.card() && sd.vol()) {
+    uint32_t sectors = sd.card()->sectorCount();
+    if (sectors > 0) {
+      uint32_t bpc      = sd.vol()->bytesPerCluster();
+      uint32_t freeCl   = sd.vol()->freeClusterCount();
+      uint32_t totalMB  = (uint32_t)(((uint64_t)sectors * 512) >> 20);
+      uint32_t freeMB   = (freeCl != UINT32_MAX && bpc > 0)
+                          ? (uint32_t)(((uint64_t)freeCl * bpc) >> 20) : 0;
+      char tot[10], fre[10];
+      if (totalMB >= 1000) snprintf(tot, sizeof(tot), "%u GB", totalMB / 1024);
+      else                 snprintf(tot, sizeof(tot), "%u MB", totalMB);
+      if (freeMB  >= 1000) snprintf(fre, sizeof(fre), "%u GB", freeMB  / 1024);
+      else                 snprintf(fre, sizeof(fre), "%u MB", freeMB);
+      if (freeMB > 0) snprintf(sdBuf, sizeof(sdBuf), "%s (%s free)", tot, fre);
+      else            snprintf(sdBuf, sizeof(sdBuf), "%s", tot);
+    }
+  }
+
+  String ip = wifiIP();
   display.setFullWindow();
   display.firstPage();
-  do { drawAboutDevicePage(display); } while (display.nextPage());
+  do { drawAboutDevicePage(display, ip, sdBuf); } while (display.nextPage());
 }
 
 static void drawBtInfo()
@@ -759,13 +780,13 @@ void loop()
       } else if (settingsSel == 1) {    // Bluetooth
         currentPage = PAGE_BT_INFO;
         drawBtInfo();
-      } else if (settingsSel == 2) {    // About Device
-        currentPage = PAGE_ABOUT_DEVICE;
-        drawAboutDevice();
-      } else {                          // Software Update
+      } else if (settingsSel == 2) {    // Software Update
         otaInfo = OtaInfo();
         currentPage = PAGE_OTA_UPDATE;
         drawOta();
+      } else {                          // About
+        currentPage = PAGE_ABOUT_DEVICE;
+        drawAboutDevice();
       }
       return;
     }
