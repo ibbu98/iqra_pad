@@ -42,20 +42,22 @@ void drawVerticalText(MyDisplay &display, int x, int y, int h, const char* text)
     }
 }
 
-// Draw a WiFi fan icon centred at (cx, cy).
-// Uses 3 arcs pointing upward (screen coords: y increases downward).
-// Angles 210°–330° sweep upper semicircle. Radii: 5, 9, 13 px.
+// WiFi fan icon — 3 arcs pointing upward, 2 px thick each for crispness on e-ink.
+// Angles 210-330 deg sweep the upper semicircle (screen coords: y increases down).
+// Compact radii (4,7,10) keep it the same height as the battery icon.
 static void drawWifiIcon(MyDisplay &d, int cx, int cy)
 {
-    d.fillCircle(cx, cy, 2, GxEPD_BLACK);
-    const int radii[3] = {5, 9, 13};
+    d.fillCircle(cx, cy, 2, GxEPD_BLACK);           // dot
+    const int radii[3] = {4, 7, 10};
     for (int i = 0; i < 3; i++) {
-        int r = radii[i];
-        for (int deg = 210; deg <= 330; deg += 2) {
-            float ang = deg * 3.14159265f / 180.0f;
-            int px = cx + (int)(r * cosf(ang) + 0.5f);
-            int py = cy + (int)(r * sinf(ang) + 0.5f);
-            d.drawPixel(px, py, GxEPD_BLACK);
+        for (int t = 0; t <= 1; t++) {              // draw r and r+1 for thickness
+            int r = radii[i] + t;
+            for (int deg = 215; deg <= 325; deg += 2) {
+                float ang = deg * 3.14159265f / 180.0f;
+                int px = cx + (int)(r * cosf(ang) + 0.5f);
+                int py = cy + (int)(r * sinf(ang) + 0.5f);
+                d.drawPixel(px, py, GxEPD_BLACK);
+            }
         }
     }
 }
@@ -77,8 +79,8 @@ void drawHomePage(MyDisplay &display, int selectedItem, bool wifiOn) {
   display.fillRect(377, 14, 12, 8, GxEPD_BLACK);
   display.fillRect(395, 15, 2, 6, GxEPD_BLACK);
 
-  // WiFi symbol — shown only when connected
-  if (wifiOn) drawWifiIcon(display, 280, 33);
+  // WiFi symbol — centred between time and battery, aligned with battery icon height
+  if (wifiOn) drawWifiIcon(display, 275, 20);
 
   display.drawLine(0, 40, 400, 40, GxEPD_BLACK);
 
@@ -665,66 +667,87 @@ void drawWifiSettingsPage(MyDisplay &display, bool connected,
                           const String &ssid, const String &ip)
 {
   _drawSettingsHeader(display, "WiFi");
-  display.setFont(&FreeSansBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
 
-  int y = PG_LIST_TOP + 10;
-  display.setCursor(12, y);
-  display.print("Status:");
-  display.setCursor(110, y);
-  if (connected) display.print("Connected");
-  else           display.print("Not connected");
+  const int LX = 12;   // left margin
+  const int VX = 115;  // value column
+  const int LH = 24;   // line height
+  int y = PG_LIST_TOP + 14;
+
+  // ── Status row ──────────────────────────────────────────────────────────────
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(LX, y); display.print("Status:");
+  display.setCursor(VX, y);
+  display.print(connected ? "Connected" : "Not connected");
 
   if (connected) {
-    y += PG_ITEM_H;
-    display.setCursor(12, y);
-    display.print("Network:");
-    display.setCursor(110, y);
-    display.print(ssid.isEmpty() ? "—" : ssid.c_str());
+    // ── Network + IP ──────────────────────────────────────────────────────────
+    y += LH;
+    display.setCursor(LX, y); display.print("Network:");
+    display.setCursor(VX, y);
+    display.print(ssid.isEmpty() ? "-" : ssid.c_str());
 
-    y += PG_ITEM_H;
-    display.setCursor(12, y);
-    display.print("IP:");
-    display.setCursor(110, y);
-    display.print(ip.isEmpty() ? "—" : ip.c_str());
+    y += LH;
+    display.setCursor(LX, y); display.print("IP:");
+    display.setCursor(VX, y);
+    display.print(ip.isEmpty() ? "-" : ip.c_str());
 
-    y += PG_ITEM_H + 6;
-    display.drawLine(12, y, 388, y, GxEPD_BLACK);
+    // ── Divider ───────────────────────────────────────────────────────────────
+    y += LH + 6;
+    display.drawLine(LX, y, 388, y, GxEPD_BLACK);
     y += 14;
-    display.setCursor(12, y);
-    display.print("To update firmware, open browser:");
-    y += PG_ITEM_H - 6;
+
+    // ── Update URL (9pt so it fits on one line) ───────────────────────────────
+    display.setCursor(LX, y);
+    display.print("Firmware update - open in browser:");
+
+    y += LH;
     display.setFont(&FreeSansBold12pt7b);
-    display.setCursor(12, y);
-    display.print("http://iqra-pad.local/update");
+    display.setCursor(LX, y);
+    // Show IP-based URL — always works (mDNS may not on all phones)
+    String url = "http://" + ip + "/update";
+    display.print(url.c_str());
+
+    y += LH + 2;
+    display.setFont(&FreeSansBold9pt7b);
+    display.setCursor(LX, y);
+    display.print("or: iqra-pad.local/update");
+
+    // Footer
+    display.setCursor(LX, 290);
+    display.print("SELECT=forget WiFi   BACK=return");
+
   } else {
-    // Hotspot is already running automatically on boot when no WiFi saved
-    y += 10;
-    display.setCursor(12, y);
-    display.print("Setup hotspot is ON:");
-    y += PG_ITEM_H - 2;
+    // ── Not connected — hotspot instructions ──────────────────────────────────
+    y += LH + 4;
+    display.setCursor(LX, y);
+    display.print("Hotspot active:");
+
+    y += LH - 4;
     display.setFont(&FreeSansBold12pt7b);
-    display.setCursor(12, y);
+    display.setCursor(LX, y);
     display.print("IQRA-PAD-SETUP");
 
     display.setFont(&FreeSansBold9pt7b);
-    y += PG_ITEM_H + 4;
-    display.drawLine(12, y, 388, y, GxEPD_BLACK);
-    y += 14;
-    display.setCursor(12, y);
-    display.print("1. Connect phone to IQRA-PAD-SETUP");
-    y += PG_ITEM_H - 4;
-    display.setCursor(12, y);
-    display.print("2. Browser opens — enter your WiFi");
-    y += PG_ITEM_H - 6;
-    display.setCursor(12, y);
-    display.print("   If no popup: open 192.168.4.1");
-  }
+    y += LH + 8;
+    display.drawLine(LX, y, 388, y, GxEPD_BLACK);
 
-  display.setFont(&FreeSansBold9pt7b);
-  display.setCursor(8, 290);
-  if (connected) display.print("SELECT = change network   BACK = return");
-  else           display.print("BACK = return");
+    y += 14;
+    display.setCursor(LX, y);
+    display.print("1. Connect phone to IQRA-PAD-SETUP");
+
+    y += LH;
+    display.setCursor(LX, y);
+    display.print("2. Browser opens - enter your WiFi");
+
+    y += LH;
+    display.setCursor(LX, y);
+    display.print("   No popup? Open: 192.168.4.1");
+
+    // Footer
+    display.setCursor(LX, 290);
+    display.print("BACK = return");
+  }
 }
 
 // ── OTA update page ───────────────────────────────────────────────────────────
