@@ -1,8 +1,12 @@
 #pragma once
 
 // ── Firmware version ──────────────────────────────────────────────────────────
-// Bump this string before every release you push to GitHub.
-#define FW_VERSION  "1.0.3"
+#define FW_VERSION    "1.0.4"
+
+// ── Device identity ───────────────────────────────────────────────────────────
+#define DEVICE_NAME   "IQRA PAD"
+#define DEVICE_MODEL  "Furqan Edition"
+#define DEVICE_USER   "Ibrahim"
 
 // ── OTA update server (GitHub raw) ───────────────────────────────────────────
 // 1. Create a GitHub repo (or use your existing one).

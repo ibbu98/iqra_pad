@@ -51,6 +51,7 @@ enum Page {
   PAGE_SETTINGS,                             // settings menu
   PAGE_WIFI_SETTINGS,                        // wifi status / reset
   PAGE_BT_INFO,                              // bluetooth info
+  PAGE_ABOUT_DEVICE,                         // about device info
   PAGE_OTA_UPDATE                            // software update
 };
 Page currentPage = PAGE_HOME;
@@ -158,6 +159,13 @@ static void drawSettings(bool full = true)
   else      display.setPartialWindow(0, 0, 400, 300);
   display.firstPage();
   do { drawSettingsPage(display, settingsSel); } while (display.nextPage());
+}
+
+static void drawAboutDevice()
+{
+  display.setFullWindow();
+  display.firstPage();
+  do { drawAboutDevicePage(display); } while (display.nextPage());
 }
 
 static void drawBtInfo()
@@ -343,7 +351,7 @@ void setup()
   // then opens "IQRA-PAD-SETUP" hotspot in background).
   // loop() starts right after setup() returns, so wifiOtaHandle() runs
   // fast enough for the captive portal to respond to the phone.
-  wifiOtaInit("iqra-pad");
+  wifiOtaInit("iqra-pad", FW_VERSION);
 
   Serial.println("[setup] done");
 }
@@ -742,7 +750,7 @@ void loop()
   else if (currentPage == PAGE_SETTINGS)
   {
     int old = settingsSel;
-    if      (act == ACT_NEXT) settingsSel = min(settingsSel + 1, 2);
+    if      (act == ACT_NEXT) settingsSel = min(settingsSel + 1, 3);
     else if (act == ACT_PREV) settingsSel = max(settingsSel - 1, 0);
     else if (act == ACT_SELECT) {
       if (settingsSel == 0) {           // WiFi
@@ -751,6 +759,9 @@ void loop()
       } else if (settingsSel == 1) {    // Bluetooth
         currentPage = PAGE_BT_INFO;
         drawBtInfo();
+      } else if (settingsSel == 2) {    // About Device
+        currentPage = PAGE_ABOUT_DEVICE;
+        drawAboutDevice();
       } else {                          // Software Update
         otaInfo = OtaInfo();
         currentPage = PAGE_OTA_UPDATE;
@@ -764,6 +775,18 @@ void loop()
       return;
     }
     if (old != settingsSel) drawSettings(false);
+  }
+
+  // ================================================================
+  // ABOUT DEVICE
+  // ================================================================
+  else if (currentPage == PAGE_ABOUT_DEVICE)
+  {
+    if (act == ACT_BACK) {
+      currentPage = PAGE_SETTINGS;
+      drawSettings(true);
+      return;
+    }
   }
 
   // ================================================================

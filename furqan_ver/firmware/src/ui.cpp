@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "settings.h"
 #include "quran_data.h"
 #include "quran_sd.h"
 #include <algorithm>  // std::find
@@ -624,6 +625,61 @@ void drawBtInfoPage(MyDisplay &display)
   display.print("BACK = return");
 }
 
+// ── About Device page ─────────────────────────────────────────────────────────
+void drawAboutDevicePage(MyDisplay &display)
+{
+  display.fillScreen(GxEPD_WHITE);
+  display.setTextColor(GxEPD_BLACK);
+
+  // Header
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(8, PG_HEADER_Y);
+  display.print("About Device");
+  display.drawLine(0, PG_LINE_Y, 400, PG_LINE_Y, GxEPD_BLACK);
+
+  const int LX  = 12;
+  const int VX  = 160;
+  const int LH  = 28;
+  int y = PG_LIST_TOP + 10;
+
+  display.setFont(&FreeSansBold9pt7b);
+
+  auto row = [&](const char* label, const char* value) {
+    display.setTextColor(GxEPD_BLACK);
+    display.setCursor(LX, y); display.print(label);
+    display.setCursor(VX, y); display.print(value);
+    display.drawLine(LX, y + 6, 388, y + 6, GxEPD_BLACK);
+    const_cast<int&>(y) += LH;
+  };
+
+  // Device rows
+  display.setCursor(LX, y); display.print("Device");
+  display.setCursor(VX, y); display.print(DEVICE_NAME);
+  display.drawLine(LX, y+6, 388, y+6, GxEPD_BLACK); y += LH;
+
+  display.setCursor(LX, y); display.print("Model");
+  display.setCursor(VX, y); display.print(DEVICE_MODEL);
+  display.drawLine(LX, y+6, 388, y+6, GxEPD_BLACK); y += LH;
+
+  display.setCursor(LX, y); display.print("User");
+  display.setCursor(VX, y); display.print(DEVICE_USER);
+  display.drawLine(LX, y+6, 388, y+6, GxEPD_BLACK); y += LH;
+
+  display.setCursor(LX, y); display.print("Firmware");
+  display.setCursor(VX, y); display.print("v" FW_VERSION);
+  display.drawLine(LX, y+6, 388, y+6, GxEPD_BLACK); y += LH;
+
+  display.setCursor(LX, y); display.print("Display");
+  display.setCursor(VX, y); display.print("4.2\" E-Ink 400x300");
+  display.drawLine(LX, y+6, 388, y+6, GxEPD_BLACK); y += LH;
+
+  display.setCursor(LX, y); display.print("Bluetooth");
+  display.setCursor(VX, y); display.print("Coming Soon");
+
+  display.setCursor(8, 290);
+  display.print("BACK = return");
+}
+
 // ── Shared settings header ────────────────────────────────────────────────────
 static void _drawSettingsHeader(MyDisplay &d, const char* title)
 {
@@ -640,8 +696,8 @@ void drawSettingsPage(MyDisplay &display, int selItem)
 {
   _drawSettingsHeader(display, "Settings");
 
-  const char* items[] = { "WiFi", "Bluetooth", "Software Update" };
-  for (int i = 0; i < 3; i++) {
+  const char* items[] = { "WiFi", "Bluetooth", "About Device", "Software Update" };
+  for (int i = 0; i < 4; i++) {
     int y = PG_LIST_TOP + i * PG_ITEM_H;
     if (i == selItem) {
       display.fillRect(0, y, 400, PG_ITEM_H, GxEPD_BLACK);

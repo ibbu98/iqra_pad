@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // Connect to saved WiFi (or open setup hotspot on first run).
-void wifiOtaInit(const char* deviceName = "iqra-pad");
+void wifiOtaInit(const char* deviceName = "iqra-pad", const char* fwVersion = "");
 
 // Call every loop() — handles incoming web upload requests.
 void wifiOtaHandle();
